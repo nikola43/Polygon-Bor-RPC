@@ -1,0 +1,189 @@
+chain = "amoy"
+# identity = "node_name"
+# verbosity = 3
+# vmdebug = false
+datadir = "/var/lib/bor/data"
+# ancient = ""
+db.engine = "pebble"
+state.scheme = "path"
+# keystore = ""
+# "rpc.batchlimit" = 100
+# "rpc.returndatalimit" = 100000
+syncmode = "full"
+# gcmode = "full"
+# snapshot = true
+# ethstats = ""
+# witnessprotocol = false
+# devfakeauthor = false
+
+# ["eth.requiredblocks"]
+
+# [log]
+    # vmodule = ""
+    # json = false
+    # backtrace = ""
+    # debug = true
+
+[p2p]
+    maxpeers = 200
+    port = 30303
+    # maxpendpeers = 50
+    # bind = "0.0.0.0"
+    # nodiscover = false
+    # nat = "any"
+    # netrestrict = ""
+    # nodekey = ""
+    # nodekeyhex = ""
+    # txarrivalwait = "500ms"
+    # txannouncementonly = false
+    [p2p.discovery]
+        # v5disc = true
+        # bootnodesv4 = []
+        # bootnodesv5 = []
+        # bootnodes = []
+        static-nodes = [ "enode://d40ab6b340be9f78179bd1ec7aa4df346d43dc1462d85fb44c5d43f595991d2ec215d7c778a7588906cb4edf175b3df231cecce090986a739678cd3c620bf580@34.89.255.109:30303", "enode://13abba15caa024325f2209d3566fa77cd864281dda4f73bca4296277bfd919ac68cef4dbb508028e0310a24f6f9e23c761fa41ac735cdc87efdee76d5ff985a7@34.185.137.160:30303", "enode://fc5bd3856a4ce6389eef1d6bc637ce7617e6ba8013f7d722d9878cf13f1c5a5a95a9e26ccb0b38bcc330343941ce117ab50db9f61e72ba450dd528a1184d8e6a@34.89.119.250:30303", "enode://945e11d11bdeed301fb23a5c05aae77bfdde39a8f70308131682a5d2fc1f080531314554afc78718a72ae25cc09be7833f760bf8681516b4315ed36217fa8dab@34.89.40.235:30303" ]
+        # trusted-nodes = []
+        dns = [ "enrtree://AKUEZKN7PSKVNR65FZDHECMKOJQSGPARGTPPBI7WS2VUL4EGR6XPC@amoy.polygon-peers.io" ]
+
+# [heimdall]
+    # url = "http://localhost:1317"
+    # "bor.without" = false
+    # grpc-address = ""
+
+[txpool]
+    nolocals = true
+    accountslots = 16
+    globalslots = 131072
+    accountqueue = 64
+    globalqueue = 131072
+    lifetime = "1h30m0s"
+    # locals = []
+    # journal = ""
+    # rejournal = "1h0m0s"
+    # pricelimit = 25000000000
+    # pricebump = 10
+
+[miner]
+    gaslimit = 45000000
+    # gasprice = "25000000000"
+    # mine = false
+    # etherbase = ""
+    # extradata = ""
+    # recommit = "2m5s"
+    # commitinterrupt = true
+
+[jsonrpc]
+    ipcpath = "/var/lib/bor/bor.ipc"
+    # ipcdisable = false
+    # gascap = 50000000
+    # evmtimeout = "5s"
+    # txfeecap = 5.0
+    # allow-unprotected-txs = false
+    # enabledeprecatedpersonal = false
+    [jsonrpc.http]
+        enabled = true
+        port = 8545
+        host = "0.0.0.0"
+        api = ["eth", "net", "web3", "txpool", "bor"]
+        vhosts = ["*"]
+        corsdomain = ["*"]
+        # prefix = ""
+        # ep-size = 40
+        # ep-requesttimeout = "0s"
+    # [jsonrpc.ws]
+        # enabled = false
+        # port = 8546
+        # prefix = ""
+        # host = "localhost"
+        # api = ["web3", "net"]
+        # origins = ["*"]
+        # ep-size = 40
+        # ep-requesttimeout = "0s"
+    # [jsonrpc.graphql]
+        # enabled = false
+        # port = 0
+        # prefix = ""
+        # host = ""
+        # vhosts = ["*"]
+        # corsdomain = ["*"]
+    # [jsonrpc.auth]
+        # jwtsecret = ""
+        # addr = "localhost"
+        # port = 8551
+        # vhosts = ["localhost"]
+    # [jsonrpc.timeouts]
+        # read = "10s"
+        # write = "30s"
+        # idle = "2m0s"
+
+# [gpo]
+    # blocks = 20
+    # percentile = 60
+    # maxheaderhistory = 1024
+    # maxblockhistory = 1024
+    # maxprice = "5000000000000"
+    # ignoreprice = "25000000000"
+
+[telemetry]
+    metrics = true
+    # expensive = false
+    # prometheus-addr = ""
+    # opencollector-endpoint = ""
+    # [telemetry.influx]
+        # influxdb = false
+        # endpoint = ""
+        # database = ""
+        # username = ""
+        # password = ""
+        # influxdbv2 = false
+        # token = ""
+        # bucket = ""
+        # organization = ""
+    # [telemetry.influx.tags]
+
+# [cache]
+    # cache = 1024
+    # gc = 25
+    # snapshot = 10
+    # database = 50
+    # trie = 15
+    # journal = "triecache"
+    # rejournal = "1h0m0s"
+    # noprefetch = false
+    # preimages = false
+    # txlookuplimit = 2350000
+    # timeout = "1h0m0s"
+    # fdlimit = 0
+
+# [history]
+#   transactions = 2350000
+#   logs = 2350000
+#   "logs.disable" = false
+#   state = 90000
+
+# [accounts]
+    # unlock = []
+    # password = ""
+    # allow-insecure-unlock = false
+    # lightkdf = false
+    # disable-bor-wallet = false
+
+# [grpc]
+    # addr = ":3131"
+
+# [developer]
+    # dev = false
+    # period = 0
+    # gaslimit = 11500000
+
+# [parallelevm]
+  # enable = true
+  # procs = 8
+  # enforce = false
+
+# [pprof]
+#   pprof = false
+#   port = 6060
+#   addr = "127.0.0.1"
+#   memprofilerate = 524288
+#   blockprofilerate = 0

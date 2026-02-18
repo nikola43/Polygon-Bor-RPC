@@ -1,0 +1,62 @@
+# Heimdall v2 Application Configuration (Polygon PoS Mainnet)
+# Place at: /var/lib/heimdall/config/app.toml
+# Based on: packaging/templates/config/mainnet/app.toml
+
+minimum-gas-prices = ""
+pruning = "default"
+pruning-keep-recent = "0"
+pruning-interval = "0"
+halt-height = 0
+halt-time = 0
+iavl-cache-size = 781250
+min-retain-blocks = 0
+
+# --- API ---
+[api]
+enable = true
+swagger = true
+address = "tcp://0.0.0.0:1317"
+max-open-connections = 1000
+
+# --- gRPC ---
+[grpc]
+enable = true
+address = "localhost:9090"
+
+[grpc-web]
+enable = true
+
+# --- State Sync ---
+[state-sync]
+snapshot-interval = 0
+snapshot-keep-recent = 2
+
+# --- Mempool ---
+[mempool]
+max-txs = -1
+
+# --- Heimdall Custom Settings ---
+[custom]
+bor_rpc_timeout = "1s"
+eth_rpc_url = "http://localhost:9545"
+bor_rpc_url = "http://localhost:8545"
+bor_grpc_flag = "false"
+bor_grpc_url = "http://localhost:3131"
+comet_bft_rpc_url = "http://0.0.0.0:26657"
+sub_graph_url = ""
+amqp_url = "amqp://guest:guest@localhost:5672/"
+checkpoint_poll_interval = "5m0s"
+syncer_poll_interval = "1m0s"
+noack_poll_interval = "16m50s"
+clerk_poll_interval = "10s"
+span_poll_interval = "1m0s"
+milestone_poll_interval = "30s"
+enable_self_heal = "false"
+sh_state_synced_interval = "3h0m0s"
+sh_stake_update_interval = "3h0m0s"
+sh_checkpoint_ack_interval = "30m0s"
+sh_max_depth_duration = "24h0m0s"
+main_chain_gas_fee_cap = "500000000000"
+main_chain_gas_tip_cap = "10000000000"
+no_ack_wait_time = "30m0s"
+chain = "mainnet"

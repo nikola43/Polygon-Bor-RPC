@@ -1,0 +1,32 @@
+[Unit]
+Description=Heimdall v2 Daemon (Polygon PoS)
+Documentation=https://docs.polygon.technology
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=heimdall
+Group=heimdall
+ExecStart=/usr/bin/heimdalld start --home /var/lib/heimdall --chain=mainnet --rest-server
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=500
+StartLimitBurst=5
+LimitNOFILE=65536
+TimeoutStartSec=0
+TimeoutStopSec=120
+KillSignal=SIGTERM
+
+# Hardening
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=heimdalld
+
+[Install]
+WantedBy=multi-user.target

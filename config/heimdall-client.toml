@@ -1,0 +1,8 @@
+# Heimdall v2 Client Configuration (Polygon PoS Mainnet)
+# Place at: /var/lib/heimdall/config/client.toml
+
+chain-id = "heimdallv2-137"
+keyring-backend = "test"
+output = "text"
+node = "tcp://localhost:26657"
+broadcast-mode = "sync"

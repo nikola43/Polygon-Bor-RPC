@@ -1,0 +1,35 @@
+[Unit]
+Description=Bor Node (Polygon PoS)
+Documentation=https://docs.polygon.technology
+After=network-online.target heimdalld.service
+Wants=network-online.target
+Requires=heimdalld.service
+
+[Service]
+Type=simple
+User=bor
+Group=bor
+Environment=GOMEMLIMIT=56GiB
+Environment=GOGC=25
+ExecStart=/usr/bin/bor server --config /var/lib/bor/config.toml
+Restart=on-failure
+RestartSec=15
+LimitNOFILE=1048576
+LimitMEMLOCK=infinity
+LimitNPROC=65536
+TimeoutStartSec=0
+TimeoutStopSec=120
+KillSignal=SIGINT
+
+# Hardening
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bor
+
+[Install]
+WantedBy=multi-user.target

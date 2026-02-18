@@ -1,0 +1,75 @@
+# Heimdall v2 CometBFT Configuration (Polygon PoS Mainnet)
+# Place at: /var/lib/heimdall/config/config.toml
+# Based on: packaging/templates/config/mainnet/config.toml
+
+version = "0.38.17"
+proxy_app = "tcp://127.0.0.1:26658"
+moniker = "polygon-rpc-node"
+db_backend = "goleveldb"
+log_level = "info"
+log_format = "json"
+genesis_file = "config/genesis.json"
+abci = "socket"
+
+# --- RPC ---
+[rpc]
+laddr = "tcp://127.0.0.1:26657"
+cors_allowed_origins = []
+cors_allowed_methods = ["HEAD", "GET", "POST"]
+cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
+max_open_connections = 900
+max_subscription_clients = 100
+max_subscriptions_per_client = 5
+timeout_broadcast_tx_commit = "10s"
+
+# --- P2P ---
+[p2p]
+laddr = "tcp://0.0.0.0:26656"
+
+# Official Polygon mainnet Heimdall v2 seeds (9 nodes from helper/config.go DefaultMainnetSeeds)
+seeds = "e019e16d4e376723f3adc58eb1761809fea9bee0@35.234.150.253:26656,7f3049e88ac7f820fd86d9120506aaec0dc54b27@34.89.75.187:26656,1f5aff3b4f3193404423c3dd1797ce60cd9fea43@34.142.43.249:26656,2d5484feef4257e56ece025633a6ea132d8cadca@35.246.99.203:26656,17e9efcbd173e81a31579310c502e8cdd8b8ff2e@35.197.233.240:26656,72a83490309f9f63fdca3a0bef16c290e5cbb09c@35.246.95.65:26656,00677b1b2c6282fb060b7bb6e9cc7d2d05cdd599@34.105.180.11:26656,721dd4cebfc4b78760c7ee5d7b1b44d29a0aa854@34.147.169.102:26656,4760b3fc04648522a0bcb2d96a10aadee141ee89@34.89.55.74:26656"
+
+# Persistent peers (8 from packaging template)
+persistent_peers = "7f3049e88ac7f820fd86d9120506aaec0dc54b27@34.89.75.187:26656,1f5aff3b4f3193404423c3dd1797ce60cd9fea43@34.142.43.249:26656,2d5484feef4257e56ece025633a6ea132d8cadca@35.246.99.203:26656,17e9efcbd173e81a31579310c502e8cdd8b8ff2e@35.197.233.240:26656,72a83490309f9f63fdca3a0bef16c290e5cbb09c@35.246.95.65:26656,00677b1b2c6282fb060b7bb6e9cc7d2d05cdd599@34.105.180.11:26656,721dd4cebfc4b78760c7ee5d7b1b44d29a0aa854@34.147.169.102:26656,4760b3fc04648522a0bcb2d96a10aadee141ee89@34.89.55.74:26656"
+
+addr_book_strict = true
+max_num_inbound_peers = 100
+max_num_outbound_peers = 100
+pex = true
+seed_mode = false
+allow_duplicate_ip = false
+handshake_timeout = "20s"
+dial_timeout = "3s"
+send_rate = 5120000
+recv_rate = 5120000
+
+# --- Mempool ---
+[mempool]
+type = "flood"
+recheck = true
+broadcast = true
+size = 5000
+max_txs_bytes = 1073741824
+max_tx_bytes = 1048576
+cache_size = 10000
+
+# --- Consensus ---
+[consensus]
+timeout_propose = "1s"
+timeout_propose_delta = "500ms"
+timeout_prevote = "1s"
+timeout_prevote_delta = "500ms"
+timeout_precommit = "1s"
+timeout_precommit_delta = "500ms"
+timeout_commit = "500ms"
+create_empty_blocks = true
+
+# --- Transaction Index ---
+[tx_index]
+indexer = "kv"
+
+# --- Instrumentation ---
+[instrumentation]
+prometheus = true
+prometheus_listen_addr = ":26660"
+namespace = "cometbft"

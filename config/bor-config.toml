@@ -1,0 +1,175 @@
+# Polygon Bor Mainnet Configuration
+# Optimized for maximum mempool coverage with 1000 peers
+# Place at: /var/lib/bor/config.toml
+
+chain = "mainnet"
+datadir = "/var/lib/bor/data"
+syncmode = "full"
+gcmode = "full"
+snapshot = true
+"bor.logs" = false
+
+# --- Database ---
+# Pebble is the default and recommended DB engine for Bor v2.x
+"db.engine" = "pebble"
+
+# PBSS (Path-Based State Scheme) - default in Bor v2.x
+"state.scheme" = "path"
+
+# --- Required blocks (chain checkpoints) ---
+["eth.requiredblocks"]
+    "31000000" = "0x2087b9e2b353209c2c21e370c82daa12278efd0fe5f0febe6c29035352cf050e"
+    "32000000" = "0x875500011e5eecc0c554f95d07b31cf59df4ca2505f4dbbfffa7d4e4da917c68"
+
+# --- P2P Networking ---
+[p2p]
+    # MEMPOOL OPTIMIZATION: 1000 peers for maximum tx propagation coverage
+    # Requires: ~4 GB RAM for peer overhead, 6+ Gbps network, 64+ GB total RAM
+    maxpeers = 1000
+    maxpendpeers = 100
+    port = 30303
+    nodiscover = false
+
+    # Transaction arrival wait: fetch announced txs faster (default 500ms)
+    txarrivalwait = "100ms"
+
+    # Broadcast full transactions (not just announcements)
+    txannouncementonly = false
+
+    [p2p.discovery]
+        v4disc = true
+        v5disc = true
+
+        # DNS-based peer discovery (primary mechanism)
+        dns = [
+            "enrtree://AKUEZKN7PSKVNR65FZDHECMKOJQSGPARGTPPBI7WS2VUL4EGR6XPC@pos.polygon-peers.io"
+        ]
+
+        # Hardcoded bootnodes from params/bootnodes.go
+        bootnodes = [
+            "enode://e4fb013061eba9a2c6fb0a41bbd4149f4808f0fb7e88ec55d7163f19a6f02d64d0ce5ecc81528b769ba552a7068057432d44ab5e9e42842aff5b4709aa2c3f3b@34.89.75.187:30303",
+            "enode://a49da6300403cf9b31e30502eb22c142ba4f77c9dda44990bccce9f2121c3152487ee95ee55c6b92d4cdce77845e40f59fd927da70ea91cf935b23e262236d75@34.142.43.249:30303"
+        ]
+
+        # Official Polygon mainnet static nodes (8 verified from packaging/templates/mainnet-v1)
+        static-nodes = [
+            "enode://48e6326841ce106f6b4e229a1be7e98a1d12be57e328b08cb461f6744ae4e78f5ec2340996ce9b40928a1a90137aadea13e25ca34774b52a3600d13a52c5c7bb@34.185.209.56:30303",
+            "enode://8ab6905fe76aa9001adb77135250e918db888cac216870c0e95cf26650d83d31d8c2c93d54c3333e0a2196517c41651d174b743ec3e11f44e595f62b77fec7ba@34.185.162.14:30303",
+            "enode://02e0b33cf60fb1f88f853c7c04830156151f4acd1c36173cd3fe1f375801fb4f5be5b3a89c98527915d37ed217752933c3faf4c820df740c9dd681294caebcf6@34.179.171.228:30303",
+            "enode://079c387b65b09674825462ea63c528ca996af7b03d19b1b2ab6557347434838067db6dd7ae5e0c2e08d5ba164117f3d7faffbf3e890cb91cffbdf45a433ddfce@35.246.166.189:30303",
+            "enode://191d06720948ae0119343e5798098f5b1f95a308174c4119d226da91833bc0176009bcc8bf5012e490500562d4d5b5427c307b01f3485b2e8351ac5afd946864@34.142.28.190:30303",
+            "enode://30a4651b245e9a0cec674b9ecb5a06ca01553aa727e14a77d0f1ccdb9e48a975f3be631505f417aae438be545ac3b290cd3ed00bef96efd7fb0fb7f916397b3f@34.39.56.114:30303",
+            "enode://b950b98b92e118551d79c7280b97ddfcdf3dacb620367ebd45e8382f8e69390df192055386221025ffd3c03912da2aadf668ae6ea7b35f391d82ef87452b3f02@34.147.169.102:30303",
+            "enode://92ef18168f6c281a313d0ca76d6122b913a101352b5069af9cea6c8dd0f8b51d669601d59fdf250e972cf9a547d8a10f21ecf5b99ce8511605f328e5f66e845f@34.105.180.11:30303"
+        ]
+
+        # Trusted peers get 10x larger tx announcement queues (40960 vs 4096)
+        # Mark the same official nodes as trusted for priority tx propagation
+        trusted-nodes = [
+            "enode://48e6326841ce106f6b4e229a1be7e98a1d12be57e328b08cb461f6744ae4e78f5ec2340996ce9b40928a1a90137aadea13e25ca34774b52a3600d13a52c5c7bb@34.185.209.56:30303",
+            "enode://8ab6905fe76aa9001adb77135250e918db888cac216870c0e95cf26650d83d31d8c2c93d54c3333e0a2196517c41651d174b743ec3e11f44e595f62b77fec7ba@34.185.162.14:30303",
+            "enode://02e0b33cf60fb1f88f853c7c04830156151f4acd1c36173cd3fe1f375801fb4f5be5b3a89c98527915d37ed217752933c3faf4c820df740c9dd681294caebcf6@34.179.171.228:30303",
+            "enode://079c387b65b09674825462ea63c528ca996af7b03d19b1b2ab6557347434838067db6dd7ae5e0c2e08d5ba164117f3d7faffbf3e890cb91cffbdf45a433ddfce@35.246.166.189:30303",
+            "enode://191d06720948ae0119343e5798098f5b1f95a308174c4119d226da91833bc0176009bcc8bf5012e490500562d4d5b5427c307b01f3485b2e8351ac5afd946864@34.142.28.190:30303",
+            "enode://30a4651b245e9a0cec674b9ecb5a06ca01553aa727e14a77d0f1ccdb9e48a975f3be631505f417aae438be545ac3b290cd3ed00bef96efd7fb0fb7f916397b3f@34.39.56.114:30303",
+            "enode://b950b98b92e118551d79c7280b97ddfcdf3dacb620367ebd45e8382f8e69390df192055386221025ffd3c03912da2aadf668ae6ea7b35f391d82ef87452b3f02@34.147.169.102:30303",
+            "enode://92ef18168f6c281a313d0ca76d6122b913a101352b5069af9cea6c8dd0f8b51d669601d59fdf250e972cf9a547d8a10f21ecf5b99ce8511605f328e5f66e845f@34.105.180.11:30303"
+        ]
+
+# --- Heimdall ---
+[heimdall]
+    url = "http://127.0.0.1:1317"
+    "bor.without" = false
+    grpc-address = ""
+
+# --- Transaction Pool (MEMPOOL OPTIMIZATION) ---
+[txpool]
+    # Treat all transactions equally (no local priority)
+    nolocals = true
+
+    # Minimum gas price (25 gwei - Polygon enforced minimum)
+    pricelimit = 25000000000
+
+    # Lower price bump to accept more replacement txs (default: 10%)
+    pricebump = 5
+
+    # Per-account slots (defaults: 16 slots, 64 queue)
+    accountslots = 128
+    accountqueue = 256
+
+    # Global pool size (defaults: 5120 slots, 1024 queue)
+    # Maximized for full mempool coverage
+    globalslots = 524288
+    globalqueue = 524288
+
+    # Keep transactions longer (default: 3h)
+    lifetime = "6h0m0s"
+
+    # Rebroadcast stuck transactions to ensure propagation
+    rebroadcast = true
+    rebroadcast-interval = "15s"
+    rebroadcast-max-age = "5m0s"
+    rebroadcast-batch-size = 500
+
+# --- Cache (Memory Allocation) ---
+[cache]
+    # Total cache in MB (default: 1024, mainnet template: 4096)
+    # 16GB for servers with 64GB+ RAM
+    cache = 16384
+    database = 50
+    trie = 15
+    gc = 25
+    snapshot = 10
+    noprefetch = false
+    preimages = false
+    triesinmemory = 128
+    # Minimal tx index — only need mempool, not historical lookups
+    # (default: 2350000 ~90 days; 1024 blocks ~34 min on Polygon)
+    txlookuplimit = 1024
+    # Cache recent block logs for faster filter queries
+    blocklogs = 128
+
+# --- JSON-RPC ---
+[jsonrpc]
+    # IPC socket for admin API (secure, local only)
+    ipcpath = "/var/lib/bor/bor.ipc"
+    gascap = 50000000
+    evmtimeout = "5s"
+    txfeecap = 5.0
+    allow-unprotected-txs = false
+
+    [jsonrpc.http]
+        enabled = true
+        host = "127.0.0.1"
+        port = 8545
+        api = ["eth", "net", "web3", "txpool", "bor", "debug"]
+        # Larger worker pool for higher throughput (default: 40)
+        ep-size = 80
+        corsdomain = ["*"]
+        vhosts = ["*"]
+
+    [jsonrpc.ws]
+        enabled = true
+        host = "127.0.0.1"
+        port = 8546
+        api = ["eth", "net", "web3", "txpool", "bor", "debug"]
+        ep-size = 80
+        origins = ["*"]
+
+    [jsonrpc.graphql]
+        enabled = false
+
+# --- Accounts ---
+[accounts]
+    disable-bor-wallet = true
+
+# --- Telemetry / Metrics ---
+[telemetry]
+    metrics = true
+    expensive = false
+    prometheus-addr = "127.0.0.1:7071"
+
+# --- Parallel EVM ---
+[parallelevm]
+    enable = true
+    procs = 8

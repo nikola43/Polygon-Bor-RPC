@@ -1,0 +1,104 @@
+  Storage Calculation for Your Config                                                                                               
+                                                                                                                                    
+  ┌──────────────────────┬─────────────────────┬─────────────────┐                                                                  
+  │      Component       │ Compressed Download │ Extracted Size  │
+  ├──────────────────────┼─────────────────────┼─────────────────┤
+  │ Bor snapshot         │ ~1.5 TB             │ ~4-5 TB         │
+  ├──────────────────────┼─────────────────────┼─────────────────┤
+  │ Heimdall snapshot    │ ~300-500 GB         │ ~500 GB - 1 TB  │
+  ├──────────────────────┼─────────────────────┼─────────────────┤
+  │ Bor daily growth     │ —                   │ ~100-150 GB/day │
+  ├──────────────────────┼─────────────────────┼─────────────────┤
+  │ OS + binaries + logs │ —                   │ ~50 GB          │
+  ├──────────────────────┼─────────────────────┼─────────────────┤
+  │ Total at day 0       │ —                   │ ~5-6 TB         │
+  ├──────────────────────┼─────────────────────┼─────────────────┤
+  │ After 6 months       │ —                   │ ~7-9 TB         │
+  └──────────────────────┴─────────────────────┴─────────────────┘
+
+  Your config has globalslots = 524288 and globalqueue = 524288 with 1000 peers, cache = 16384 MB, and GOMEMLIMIT=56GiB. This means:
+
+  - RAM: 64 GB minimum (56 GiB for Go + OS overhead). 128 GB recommended for 1000 peers.
+  - Storage: 8 TB NVMe minimum to run comfortably for ~3-6 months before needing to prune or re-snapshot.
+  - Network: 1 Gbps minimum, faster is better for 1000 peers.
+
+  ---
+  Server Recommendations
+
+  Best Value: Hetzner AX162-S (~$221/mo)
+
+  ┌──────────┬───────────────────────────────┐
+  │   Spec   │            AX162-S            │
+  ├──────────┼───────────────────────────────┤
+  │ CPU      │ AMD EPYC 9454P — 48 cores     │
+  ├──────────┼───────────────────────────────┤
+  │ RAM      │ 128 GB DDR5 ECC               │
+  ├──────────┼───────────────────────────────┤
+  │ Storage  │ 2x 3.84 TB NVMe (7.68 TB raw) │
+  ├──────────┼───────────────────────────────┤
+  │ Network  │ 1 Gbps unlimited              │
+  ├──────────┼───────────────────────────────┤
+  │ Price    │ ~$221/mo                      │
+  ├──────────┼───────────────────────────────┤
+  │ Location │ Germany / Finland             │
+  └──────────┴───────────────────────────────┘
+
+  Verdict: Best price/performance. 48 EPYC cores handle 1000 peers + parallel EVM easily. 128 GB RAM is ideal for your config. 7.68
+  TB in RAID-0 gives you enough for ~3-4 months before needing to re-snapshot. Use JBOD (no RAID) to get full 7.68 TB usable.
+
+  Upgrade Option: Hetzner AX162-S + Extra NVMe
+
+  Order the AX162-S and add 2 more NVMe drives via Hetzner's configurator. 4x 3.84 TB = 15.36 TB — enough for 1+ year without
+  maintenance. Expect ~$280-320/mo total.
+
+  Budget Option: Hetzner AX102 (~$116/mo)
+
+  ┌─────────┬────────────────────────────────┐
+  │  Spec   │             AX102              │
+  ├─────────┼────────────────────────────────┤
+  │ CPU     │ AMD Ryzen 9 7950X3D — 16 cores │
+  ├─────────┼────────────────────────────────┤
+  │ RAM     │ 128 GB DDR5 ECC                │
+  ├─────────┼────────────────────────────────┤
+  │ Storage │ 2x 1.92 TB NVMe (3.84 TB raw)  │
+  ├─────────┼────────────────────────────────┤
+  │ Network │ 1 Gbps unlimited               │
+  ├─────────┼────────────────────────────────┤
+  │ Price   │ ~$116/mo                       │
+  └─────────┴────────────────────────────────┘
+
+  Verdict: CPU is fast enough (16 cores), RAM is good. Storage is too small — only 3.84 TB won't even fit the initial Bor snapshot.
+  You'd need to add extra NVMe drives, bringing it to ~$170-200/mo. At that point, the AX162-S is better value.
+
+  OVH Alternative: Advance-5 (~$236/mo)
+
+  ┌─────────┬──────────────────────────────────┐
+  │  Spec   │            Advance-5             │
+  ├─────────┼──────────────────────────────────┤
+  │ CPU     │ AMD EPYC 8224P — 24 cores        │
+  ├─────────┼──────────────────────────────────┤
+  │ RAM     │ 96-576 GB configurable           │
+  ├─────────┼──────────────────────────────────┤
+  │ Storage │ Up to 8x 7.68 TB NVMe            │
+  ├─────────┼──────────────────────────────────┤
+  │ Network │ 25 Gbps private, 1-5 Gbps public │
+  ├─────────┼──────────────────────────────────┤
+  │ Price   │ from $236/mo                     │
+  └─────────┴──────────────────────────────────┘
+
+  Verdict: More storage flexibility (up to 61 TB NVMe) and faster network. Good if you want 5+ Gbps public bandwidth for faster
+  snapshot downloads and peer throughput. Configurable RAM up to 576 GB.
+
+  ---
+  My Recommendation
+
+  Hetzner AX162-S is the sweet spot:
+
+  - 48 cores = overkill for your needs (great headroom)
+  - 128 GB RAM = perfect for GOMEMLIMIT=56GiB + 1000 peers + OS
+  - 7.68 TB NVMe = fits initial data + ~3 months growth
+  - $221/mo with unlimited bandwidth
+  - Add extra NVMe later if you need more runway
+
+  Important: Use JBOD (no RAID) and mount both drives. Put Bor data on one, Heimdall on the other. Or use RAID-0 (stripe) for max
+  IOPS if you're comfortable re-syncing from snapshot on drive failure.
