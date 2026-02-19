@@ -95,7 +95,10 @@ echo "    globalslots = 524288"
 echo "    globalqueue = 524288"
 echo "    rebroadcast = true (15s interval)"
 echo "    trusted-nodes = 8 (10x ann queue)"
-echo "    cache = 16384 MB"
+echo "    cache = 65536 MB (64 GB)"
+echo "    triesinmemory = 256"
+echo "    ep-size = 256 (RPC workers)"
+echo "    parallel EVM = 24 procs"
 
 # --- Set ownership ---
 echo ""

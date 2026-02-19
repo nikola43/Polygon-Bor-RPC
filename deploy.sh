@@ -4,13 +4,17 @@
 # Deploys a fully configured Polygon PoS node optimized for instant
 # mempool transaction indexing. Builds Bor from local source.
 #
+# Storage layout (JBOD — one dedicated NVMe per service):
+#   /dev/nvme2n1 (7TB) → /var/lib/bor      (Bor blockchain state)
+#   /dev/nvme3n1 (7TB) → /var/lib/heimdall  (Heimdall consensus data)
+#
 # Usage:
 #   sudo bash deploy.sh              # Full deploy (system + heimdall + bor)
 #   sudo bash deploy.sh --skip-system # Skip system setup (already done)
 #
 # Requirements:
 #   - Ubuntu 22.04/24.04 LTS (fresh or existing)
-#   - 64+ GB RAM, 16+ CPU cores, 8+ TB NVMe SSD
+#   - 64+ GB RAM, 16+ CPU cores, 2x NVMe SSDs
 #   - 5+ Gbps network recommended
 #   - Run as root
 #
@@ -27,6 +31,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BOR_SRC="${SCRIPT_DIR}/bor"
 SKIP_SYSTEM=false
 TOTAL_START=$(date +%s)
+
+# Storage — adjust these to match your hardware
+BOR_DISK="/dev/nvme2n1"
+HEIMDALL_DISK="/dev/nvme3n1"
 
 # Parse args
 for arg in "$@"; do
@@ -48,6 +56,44 @@ fail() { echo "       ✗ $1"; exit 1; }
 elapsed() {
     local secs=$(( $(date +%s) - $1 ))
     printf '%dm%02ds' $((secs/60)) $((secs%60))
+}
+
+setup_disk() {
+    local disk="$1"
+    local mountpoint="$2"
+    local label="$3"
+
+    if [[ ! -b "$disk" ]]; then
+        warn "${disk} not found — you must manually provide storage at ${mountpoint}."
+        return 1
+    fi
+
+    mkdir -p "$mountpoint"
+
+    if mountpoint -q "$mountpoint" 2>/dev/null; then
+        ok "${mountpoint} already mounted ($(findmnt -n -o SOURCE "$mountpoint"))"
+        return 0
+    fi
+
+    if ! blkid -p "$disk" &>/dev/null; then
+        echo "       Formatting ${disk} as ext4 (label: ${label})..."
+        mkfs.ext4 -F -L "$label" -m 0 \
+            -E lazy_itable_init=1,lazy_journal_init=1 \
+            "$disk"
+        ok "Formatted ${disk}"
+    else
+        ok "${disk} already has filesystem ($(blkid -s TYPE -o value "$disk"))"
+    fi
+
+    mount -o noatime,discard "$disk" "$mountpoint"
+    ok "Mounted ${disk} → ${mountpoint}"
+
+    local uuid
+    uuid=$(blkid -s UUID -o value "$disk")
+    if ! grep -q "$uuid" /etc/fstab 2>/dev/null; then
+        echo "UUID=${uuid} ${mountpoint} ext4 noatime,discard,nofail 0 2" >> /etc/fstab
+        ok "Added to /etc/fstab (UUID=${uuid})"
+    fi
 }
 
 # ──────────────────────────────────────────────
@@ -74,6 +120,7 @@ echo ""
 echo "  RAM:    ${TOTAL_RAM_GB} GB"
 echo "  CPUs:   $(nproc)"
 echo "  Source: ${BOR_SRC}"
+echo "  Storage: JBOD (${BOR_DISK} → Bor, ${HEIMDALL_DISK} → Heimdall)"
 echo "  Skip system setup: ${SKIP_SYSTEM}"
 
 # ══════════════════════════════════════════════
@@ -92,7 +139,8 @@ if [[ "$SKIP_SYSTEM" == "false" ]]; then
         jq aria2 lz4 zstd pv \
         curl wget git \
         python3 python3-pip \
-        ufw htop iotop sysstat net-tools tmux unzip
+        ufw htop iotop sysstat net-tools tmux unzip \
+        nvme-cli
     ok "Packages installed"
 
     # --- Go toolchain ---
@@ -119,27 +167,32 @@ GOENV
     step "1.3" "Creating system users..."
     id -u bor &>/dev/null || useradd --system --shell /usr/sbin/nologin --home /var/lib/bor bor
     id -u heimdall &>/dev/null || useradd --system --shell /usr/sbin/nologin --home /var/lib/heimdall heimdall
-    mkdir -p "$BOR_HOME" "$HEIMDALL_HOME"
-    chown bor:bor "$BOR_HOME"
-    chown heimdall:heimdall "$HEIMDALL_HOME"
     ok "Users: bor, heimdall"
 
+    # --- NVMe storage (JBOD) ---
+    step "1.4" "Setting up NVMe storage (JBOD — one drive per service)..."
+    setup_disk "$BOR_DISK"      "$BOR_HOME"      "bor-data"      || true
+    setup_disk "$HEIMDALL_DISK"  "$HEIMDALL_HOME"  "heimdall-data"  || true
+    chown bor:bor "$BOR_HOME"
+    chown heimdall:heimdall "$HEIMDALL_HOME"
+    ok "Storage ready"
+
     # --- Kernel tuning ---
-    step "1.4" "Tuning kernel for max peer connectivity..."
+    step "1.5" "Tuning kernel for max peer connectivity + NVMe I/O..."
     cat > /etc/sysctl.d/99-polygon-node.conf << 'SYSCTL'
-# Polygon Node - Kernel Tuning for 1000+ Peers & Low-Latency Mempool
+# Polygon Node - Kernel Tuning for 1000+ Peers, NVMe I/O, 755GB RAM
 
 # File descriptors
 fs.file-max = 2097152
 fs.nr_open = 2097152
 
-# TCP buffers (high peer count)
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
+# TCP buffers (1000+ peer connections)
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
 net.core.rmem_default = 1048576
 net.core.wmem_default = 1048576
-net.ipv4.tcp_rmem = 4096 1048576 16777216
-net.ipv4.tcp_wmem = 4096 1048576 16777216
+net.ipv4.tcp_rmem = 4096 1048576 33554432
+net.ipv4.tcp_wmem = 4096 1048576 33554432
 
 # Connection tracking
 net.netfilter.nf_conntrack_max = 1048576
@@ -155,7 +208,7 @@ net.ipv4.tcp_keepalive_time = 300
 net.ipv4.tcp_keepalive_intvl = 30
 net.ipv4.tcp_keepalive_probes = 5
 
-# BBR congestion control (better throughput)
+# BBR congestion control
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 
@@ -168,16 +221,18 @@ net.ipv4.tcp_mtu_probing = 1
 # Ephemeral ports
 net.ipv4.ip_local_port_range = 1024 65535
 
-# Memory - minimize swap, fast writeback
-vm.swappiness = 10
+# Memory — 755GB RAM, never swap, fast dirty page writeback
+vm.swappiness = 1
 vm.dirty_ratio = 40
 vm.dirty_background_ratio = 10
+vm.dirty_expire_centisecs = 1000
+vm.dirty_writeback_centisecs = 500
 vm.max_map_count = 655360
 SYSCTL
     ok "Kernel params written"
 
     # --- Ulimits ---
-    step "1.5" "Setting file descriptor limits..."
+    step "1.6" "Setting file descriptor limits..."
     cat > /etc/security/limits.d/99-polygon.conf << 'LIMITS'
 bor      soft    nofile    1048576
 bor      hard    nofile    1048576
@@ -191,7 +246,7 @@ LIMITS
     ok "Ulimits configured"
 
     # --- Firewall ---
-    step "1.6" "Configuring firewall..."
+    step "1.7" "Configuring firewall..."
     ufw --force reset > /dev/null 2>&1
     ufw default deny incoming > /dev/null 2>&1
     ufw default allow outgoing > /dev/null 2>&1
@@ -202,12 +257,23 @@ LIMITS
     ufw --force enable > /dev/null 2>&1
     ok "UFW: SSH + Bor P2P + Heimdall P2P"
 
-    # --- BBR module ---
-    step "1.7" "Loading BBR congestion control..."
+    # --- BBR + NVMe I/O tuning ---
+    step "1.8" "Loading BBR module + NVMe I/O scheduler..."
     modprobe tcp_bbr 2>/dev/null || true
     grep -q "tcp_bbr" /etc/modules-load.d/modules.conf 2>/dev/null || echo "tcp_bbr" >> /etc/modules-load.d/modules.conf
+
+    for dev in nvme2n1 nvme3n1; do
+        if [[ -d "/sys/block/${dev}" ]]; then
+            echo none > "/sys/block/${dev}/queue/scheduler" 2>/dev/null || true
+            echo 256 > "/sys/block/${dev}/queue/read_ahead_kb" 2>/dev/null || true
+        fi
+    done
+    cat > /etc/udev/rules.d/60-nvme-polygon.rules << 'UDEV'
+ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="none", ATTR{queue/read_ahead_kb}="256"
+UDEV
+
     sysctl --system > /dev/null 2>&1 || true
-    ok "BBR loaded, sysctl applied"
+    ok "BBR loaded, NVMe scheduler=none, sysctl applied"
 
     ok "Phase 1 complete ($(elapsed $PHASE_START))"
 else
@@ -302,7 +368,7 @@ cp "${SCRIPT_DIR}/config/bor-config.toml" "${BOR_HOME}/config.toml"
 ok "config.toml → ${BOR_HOME}/config.toml"
 
 echo ""
-echo "       Mempool tuning:"
+echo "       Mempool tuning (optimized for ${TOTAL_RAM_GB}GB RAM, $(nproc) cores):"
 echo "       ├─ maxpeers          = 1000"
 echo "       ├─ txarrivalwait     = 100ms"
 echo "       ├─ trusted-nodes     = 8 (10x ann queue)"
@@ -311,15 +377,17 @@ echo "       ├─ globalslots       = 524288"
 echo "       ├─ globalqueue       = 524288"
 echo "       ├─ pricebump         = 5%"
 echo "       ├─ rebroadcast       = true (15s / batch 500)"
-echo "       ├─ cache             = 16384 MB"
-echo "       └─ parallel EVM      = 8 procs"
+echo "       ├─ cache             = 65536 MB (64 GB)"
+echo "       ├─ triesinmemory     = 256"
+echo "       ├─ ep-size           = 256 (RPC workers)"
+echo "       └─ parallel EVM      = 24 procs"
 
 step "4.2" "Setting ownership & installing service..."
 chown -R bor:bor "${BOR_HOME}"
 cp "${SCRIPT_DIR}/services/bor.service" /etc/systemd/system/bor.service
 systemctl daemon-reload
 systemctl enable bor > /dev/null 2>&1
-ok "bor.service enabled (GOMEMLIMIT=56GiB, GOGC=25)"
+ok "bor.service enabled (GOMEMLIMIT=600GiB, GOGC=25)"
 
 step "4.3" "Installing health check..."
 cp "${SCRIPT_DIR}/scripts/check-node.sh" /usr/local/bin/polygon-check
@@ -338,6 +406,10 @@ echo ""
 echo "  Binary:  /usr/bin/bor (built from ${BOR_SRC})"
 echo "  Commit:  ${GIT_COMMIT}"
 echo "  Config:  ${BOR_HOME}/config.toml"
+echo ""
+echo "  Storage layout (JBOD):"
+echo "    ${BOR_DISK}  → /var/lib/bor      (Bor data)"
+echo "    ${HEIMDALL_DISK} → /var/lib/heimdall  (Heimdall data)"
 echo ""
 echo "  ┌─────────────────────────────────────────────────┐"
 echo "  │  NEXT STEPS — Download snapshots, then start    │"

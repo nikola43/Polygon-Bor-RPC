@@ -1,10 +1,11 @@
 # Polygon Bor Mainnet Configuration
 # Optimized for maximum mempool coverage with 1000 peers
+# Tuned for: 64 cores, 755GB RAM, dedicated 7TB NVMe (JBOD)
 # Place at: /var/lib/bor/config.toml
 
 chain = "mainnet"
 datadir = "/var/lib/bor/data"
-syncmode = "full"
+syncmode = "snap"
 gcmode = "full"
 snapshot = true
 "bor.logs" = false
@@ -114,20 +115,20 @@ snapshot = true
 # --- Cache (Memory Allocation) ---
 [cache]
     # Total cache in MB (default: 1024, mainnet template: 4096)
-    # 16GB for servers with 64GB+ RAM
-    cache = 16384
+    # 64GB for servers with 512GB+ RAM — maximizes state read performance
+    cache = 65536
     database = 50
     trie = 15
     gc = 25
     snapshot = 10
     noprefetch = false
     preimages = false
-    triesinmemory = 128
+    triesinmemory = 256
     # Minimal tx index — only need mempool, not historical lookups
     # (default: 2350000 ~90 days; 1024 blocks ~34 min on Polygon)
     txlookuplimit = 1024
     # Cache recent block logs for faster filter queries
-    blocklogs = 128
+    blocklogs = 256
 
 # --- JSON-RPC ---
 [jsonrpc]
@@ -143,8 +144,8 @@ snapshot = true
         host = "127.0.0.1"
         port = 8545
         api = ["eth", "net", "web3", "txpool", "bor", "debug"]
-        # Larger worker pool for higher throughput (default: 40)
-        ep-size = 80
+        # Large worker pool for higher throughput (default: 40)
+        ep-size = 256
         corsdomain = ["*"]
         vhosts = ["*"]
 
@@ -153,7 +154,7 @@ snapshot = true
         host = "127.0.0.1"
         port = 8546
         api = ["eth", "net", "web3", "txpool", "bor", "debug"]
-        ep-size = 80
+        ep-size = 256
         origins = ["*"]
 
     [jsonrpc.graphql]
@@ -172,4 +173,4 @@ snapshot = true
 # --- Parallel EVM ---
 [parallelevm]
     enable = true
-    procs = 8
+    procs = 24
