@@ -14,7 +14,7 @@ import (
 const (
 	publicRPC = "https://polygon-bor-rpc.publicnode.com"
 	localRPC  = "http://127.0.0.1:8545"
-	interval  = 1 * time.Minute
+	interval  = 5 * time.Second
 	timeout   = 10 * time.Second
 
 	// ANSI colors
