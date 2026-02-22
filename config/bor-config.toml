@@ -1,6 +1,6 @@
 # Polygon Bor Mainnet Configuration
 # Optimized for maximum mempool coverage with 1000 peers
-# Tuned for: 64 cores, 755GB RAM, dedicated 7TB NVMe (JBOD)
+# Tuned for: 20 cores, 188GB RAM, RAID6 12TB (md3 at /home)
 # Place at: /var/lib/bor/config.toml
 
 chain = "mainnet"
@@ -24,9 +24,9 @@ snapshot = true
 
 # --- P2P Networking ---
 [p2p]
-    # MEMPOOL OPTIMIZATION: 1000 peers for maximum tx propagation coverage
-    # Requires: ~4 GB RAM for peer overhead, 6+ Gbps network, 64+ GB total RAM
-    maxpeers = 1000
+    # MEMPOOL OPTIMIZATION: 500 peers for good tx propagation coverage
+    # Adjusted for 188GB RAM server (1000 peers needs 512GB+ RAM)
+    maxpeers = 500
     maxpendpeers = 100
     port = 30303
     nodiscover = false
@@ -115,8 +115,8 @@ snapshot = true
 # --- Cache (Memory Allocation) ---
 [cache]
     # Total cache in MB (default: 1024, mainnet template: 4096)
-    # 64GB for servers with 512GB+ RAM — maximizes state read performance
-    cache = 65536
+    # 16GB for servers with 188GB RAM
+    cache = 16384
     database = 50
     trie = 15
     gc = 25
@@ -173,4 +173,4 @@ snapshot = true
 # --- Parallel EVM ---
 [parallelevm]
     enable = true
-    procs = 24
+    procs = 8

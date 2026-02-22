@@ -15,8 +15,8 @@ echo ""
 # ──────────────────────────────────────────────
 # Configuration — adjust these to match your hardware
 # ──────────────────────────────────────────────
-BOR_DISK="/dev/nvme2n1"        # 7 TB NVMe for Bor
-HEIMDALL_DISK="/dev/nvme3n1"   # 7 TB NVMe for Heimdall
+BOR_DISK=""        # No separate NVMe — using RAID6 at /home
+HEIMDALL_DISK=""   # No separate NVMe — using RAID6 at /home
 GO_VERSION="1.25.7"
 
 # --- Check root ---

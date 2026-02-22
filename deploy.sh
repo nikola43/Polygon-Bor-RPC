@@ -32,9 +32,10 @@ BOR_SRC="${SCRIPT_DIR}/bor"
 SKIP_SYSTEM=false
 TOTAL_START=$(date +%s)
 
-# Storage — adjust these to match your hardware
-BOR_DISK="/dev/nvme2n1"
-HEIMDALL_DISK="/dev/nvme3n1"
+# Storage — this server uses RAID6 at /home, no separate NVMe drives
+# Data will be symlinked from /var/lib/bor and /var/lib/heimdall to /home
+BOR_DISK=""
+HEIMDALL_DISK=""
 
 # Parse args
 for arg in "$@"; do
@@ -180,7 +181,7 @@ GOENV
     # --- Kernel tuning ---
     step "1.5" "Tuning kernel for max peer connectivity + NVMe I/O..."
     cat > /etc/sysctl.d/99-polygon-node.conf << 'SYSCTL'
-# Polygon Node - Kernel Tuning for 1000+ Peers, NVMe I/O, 755GB RAM
+# Polygon Node - Kernel Tuning for 1000+ Peers, NVMe I/O, 188GB RAM
 
 # File descriptors
 fs.file-max = 2097152
@@ -221,7 +222,7 @@ net.ipv4.tcp_mtu_probing = 1
 # Ephemeral ports
 net.ipv4.ip_local_port_range = 1024 65535
 
-# Memory — 755GB RAM, never swap, fast dirty page writeback
+# Memory — 188GB RAM, never swap, fast dirty page writeback
 vm.swappiness = 1
 vm.dirty_ratio = 40
 vm.dirty_background_ratio = 10
@@ -377,17 +378,17 @@ echo "       ├─ globalslots       = 524288"
 echo "       ├─ globalqueue       = 524288"
 echo "       ├─ pricebump         = 5%"
 echo "       ├─ rebroadcast       = true (15s / batch 500)"
-echo "       ├─ cache             = 65536 MB (64 GB)"
+echo "       ├─ cache             = 16384 MB (16 GB)"
 echo "       ├─ triesinmemory     = 256"
 echo "       ├─ ep-size           = 256 (RPC workers)"
-echo "       └─ parallel EVM      = 24 procs"
+echo "       └─ parallel EVM      = 8 procs"
 
 step "4.2" "Setting ownership & installing service..."
 chown -R bor:bor "${BOR_HOME}"
 cp "${SCRIPT_DIR}/services/bor.service" /etc/systemd/system/bor.service
 systemctl daemon-reload
 systemctl enable bor > /dev/null 2>&1
-ok "bor.service enabled (GOMEMLIMIT=600GiB, GOGC=25)"
+ok "bor.service enabled (GOMEMLIMIT=140GiB, GOGC=25)"
 
 step "4.3" "Installing health check..."
 cp "${SCRIPT_DIR}/scripts/check-node.sh" /usr/local/bin/polygon-check
@@ -395,6 +396,72 @@ chmod +x /usr/local/bin/polygon-check
 ok "Run: polygon-check"
 
 ok "Phase 4 complete ($(elapsed $PHASE_START))"
+
+# ══════════════════════════════════════════════
+# PHASE 5: Monitoring Stack (Prometheus + Grafana + Node Exporter)
+# ══════════════════════════════════════════════
+PHASE_START=$(date +%s)
+log "PHASE 5: Monitoring Stack"
+
+# --- Install packages ---
+step "5.1" "Installing Prometheus, Node Exporter, Grafana..."
+apt-get install -y -qq prometheus prometheus-node-exporter apt-transport-https software-properties-common
+if ! dpkg -l grafana &>/dev/null; then
+    if [[ ! -f /etc/apt/sources.list.d/grafana.list ]]; then
+        curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor -o /usr/share/keyrings/grafana-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/grafana-archive-keyring.gpg] https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list
+        apt-get update -qq
+    fi
+    apt-get install -y -qq grafana
+fi
+ok "Prometheus, Node Exporter, Grafana installed"
+
+# --- Deploy Prometheus config + alert rules ---
+step "5.2" "Deploying Prometheus config + alert rules..."
+cp "${SCRIPT_DIR}/infra/prometheus/prometheus.yml" /etc/prometheus/prometheus.yml
+cp "${SCRIPT_DIR}/infra/prometheus/alert-rules.yml" /etc/prometheus/alert-rules.yml
+chown -R prometheus:prometheus /etc/prometheus/
+if [[ -f "${SCRIPT_DIR}/infra/prometheus/prometheus.env" ]]; then
+    cp "${SCRIPT_DIR}/infra/prometheus/prometheus.env" /etc/default/prometheus
+fi
+ok "prometheus.yml + alert-rules.yml → /etc/prometheus/"
+
+# --- Deploy Grafana config ---
+step "5.3" "Deploying Grafana config + dashboards..."
+cp "${SCRIPT_DIR}/infra/grafana/grafana.ini" /etc/grafana/grafana.ini
+GRAFANA_PASS="${GRAFANA_ADMIN_PASSWORD:-admin}"
+sed -i "s/^admin_password = .*/admin_password = ${GRAFANA_PASS}/" /etc/grafana/grafana.ini
+
+mkdir -p /etc/grafana/provisioning/datasources
+mkdir -p /etc/grafana/provisioning/dashboards
+cp "${SCRIPT_DIR}/infra/grafana/provisioning/datasources/prometheus.yml" /etc/grafana/provisioning/datasources/prometheus.yml
+cp "${SCRIPT_DIR}/infra/grafana/provisioning/dashboards/dashboards.yml" /etc/grafana/provisioning/dashboards/dashboards.yml
+cp "${SCRIPT_DIR}/infra/grafana/provisioning/dashboards/server-stats.json" /etc/grafana/provisioning/dashboards/server-stats.json
+cp "${SCRIPT_DIR}/infra/grafana/provisioning/dashboards/bor-metrics.json" /etc/grafana/provisioning/dashboards/bor-metrics.json
+cp "${SCRIPT_DIR}/infra/grafana/provisioning/dashboards/heimdall-metrics.json" /etc/grafana/provisioning/dashboards/heimdall-metrics.json
+chown -R grafana:grafana /etc/grafana/
+ok "grafana.ini + datasource + 3 dashboards → /etc/grafana/"
+
+# --- Firewall ---
+step "5.4" "Opening UFW port 3000 for Grafana..."
+ufw allow 3002/tcp comment 'Grafana' > /dev/null 2>&1 || true
+ok "UFW: port 3000/tcp open"
+
+# --- Enable + start services ---
+step "5.5" "Enabling and starting monitoring services..."
+systemctl daemon-reload
+systemctl enable prometheus prometheus-node-exporter grafana-server > /dev/null 2>&1
+systemctl restart prometheus prometheus-node-exporter grafana-server
+
+for svc in prometheus prometheus-node-exporter grafana-server; do
+    if systemctl is-active --quiet "$svc"; then
+        ok "${svc} is running"
+    else
+        warn "${svc} failed to start — check: journalctl -u ${svc}"
+    fi
+done
+
+ok "Phase 5 complete ($(elapsed $PHASE_START))"
 
 # ══════════════════════════════════════════════
 # DONE
@@ -410,6 +477,11 @@ echo ""
 echo "  Storage layout (JBOD):"
 echo "    ${BOR_DISK}  → /var/lib/bor      (Bor data)"
 echo "    ${HEIMDALL_DISK} → /var/lib/heimdall  (Heimdall data)"
+echo ""
+echo "  Monitoring:"
+echo "    Grafana:    http://<server-ip>:3002  (admin / ${GRAFANA_PASS})"
+echo "    Prometheus: http://127.0.0.1:9091"
+echo "    Dashboards: Server Stats, Bor Metrics, Heimdall Metrics"
 echo ""
 echo "  ┌─────────────────────────────────────────────────┐"
 echo "  │  NEXT STEPS — Download snapshots, then start    │"

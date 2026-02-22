@@ -1,0 +1,132 @@
+groups:
+  - name: node
+    rules:
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node exporter is down"
+          description: "Node exporter has been unreachable for more than 2 minutes."
+
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage ({{ $value | printf \"%.1f\" }}%)"
+          description: "CPU usage has been above 90% for more than 10 minutes."
+
+      - alert: DiskUsageHigh
+        expr: (1 - node_filesystem_avail_bytes{fstype=~"ext4|xfs"} / node_filesystem_size_bytes{fstype=~"ext4|xfs"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage above 85% on {{ $labels.mountpoint }} ({{ $value | printf \"%.1f\" }}%)"
+          description: "Filesystem {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full."
+
+      - alert: DiskUsageCritical
+        expr: (1 - node_filesystem_avail_bytes{fstype=~"ext4|xfs"} / node_filesystem_size_bytes{fstype=~"ext4|xfs"}) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk usage critical on {{ $labels.mountpoint }} ({{ $value | printf \"%.1f\" }}%)"
+          description: "Filesystem {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full. Immediate action required."
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Available memory below 5% ({{ $value | printf \"%.1f\" }}% available)"
+          description: "System is running low on available memory."
+
+  - name: bor
+    rules:
+      - alert: BorDown
+        expr: up{job="bor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bor is down"
+          description: "Bor metrics endpoint has been unreachable for more than 2 minutes."
+
+      - alert: BorZeroPeers
+        expr: p2p_peers{job="bor"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bor has zero peers"
+          description: "Bor has had no connected peers for more than 5 minutes."
+
+      - alert: BorLowPeers
+        expr: p2p_peers{job="bor"} < 50
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bor peer count low ({{ $value }} peers)"
+          description: "Bor has fewer than 50 peers for more than 15 minutes. Target is 1000."
+
+      - alert: BorSyncFallingBehind
+        expr: rate(chain_head_block{job="bor"}[10m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bor block height is not advancing"
+          description: "Bor block height has not changed in the last 10 minutes. Node may be stuck."
+
+      - alert: BorTxpoolFull
+        expr: txpool_slots{job="bor"} > 500000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bor txpool near capacity ({{ $value }} / 524288 slots)"
+          description: "Txpool slot usage is above 500k. Consider increasing globalslots or investigating backlog."
+
+      - alert: BorHighRPCFailureRate
+        expr: rate(rpc_failure{job="bor"}[5m]) / (rate(rpc_requests{job="bor"}[5m]) + rate(rpc_failure{job="bor"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bor RPC failure rate above 10% ({{ $value | printf \"%.1f\" }}%)"
+          description: "More than 10% of RPC requests are failing."
+
+  - name: heimdall
+    rules:
+      - alert: HeimdallDown
+        expr: up{job="heimdall"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Heimdall is down"
+          description: "Heimdall metrics endpoint has been unreachable for more than 2 minutes."
+
+      - alert: HeimdallNotAdvancing
+        expr: rate(cometbft_consensus_height{job="heimdall"}[10m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Heimdall block height is not advancing"
+          description: "Heimdall block height has not changed in the last 10 minutes."
+
+      - alert: HeimdallLowPeers
+        expr: cometbft_p2p_peers{job="heimdall"} < 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Heimdall peer count low ({{ $value }} peers)"
+          description: "Heimdall has fewer than 3 peers for more than 10 minutes."

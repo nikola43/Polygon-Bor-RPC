@@ -1,0 +1,347 @@
+{
+  "uid": "bor-metrics",
+  "title": "Bor Metrics",
+  "tags": ["polygon", "bor", "geth"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Block Height",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "chain_head_block{job=\"bor\"}",
+          "legendFormat": "Head Block",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Sync Gap (Highest - Head)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "steps": [
+              { "value": 0, "color": "green" },
+              { "value": 10, "color": "yellow" },
+              { "value": 100, "color": "red" }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "chain_head_header{job=\"bor\"} - chain_head_block{job=\"bor\"}",
+          "legendFormat": "Sync Gap",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Peer Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "p2p_peers{job=\"bor\"}",
+          "legendFormat": "Total Peers",
+          "refId": "A"
+        },
+        {
+          "expr": "p2p_ingress{job=\"bor\"}",
+          "legendFormat": "Inbound",
+          "refId": "B"
+        },
+        {
+          "expr": "p2p_egress{job=\"bor\"}",
+          "legendFormat": "Outbound",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "P2P Traffic",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "Bps" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(p2p_ingress{job=\"bor\"}[5m])",
+          "legendFormat": "Ingress",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(p2p_egress{job=\"bor\"}[5m])",
+          "legendFormat": "Egress",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "TxPool Pending / Queued",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "txpool_pending{job=\"bor\"}",
+          "legendFormat": "Pending",
+          "refId": "A"
+        },
+        {
+          "expr": "txpool_queued{job=\"bor\"}",
+          "legendFormat": "Queued",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "TxPool Slots Usage",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 524288,
+          "thresholds": {
+            "steps": [
+              { "value": 0, "color": "green" },
+              { "value": 400000, "color": "yellow" },
+              { "value": 500000, "color": "red" }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "txpool_slots{job=\"bor\"}",
+          "legendFormat": "Used Slots",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "TxPool Operations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(txpool_valid{job=\"bor\"}[5m])",
+          "legendFormat": "Valid",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(txpool_invalid{job=\"bor\"}[5m])",
+          "legendFormat": "Invalid",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(txpool_underpriced{job=\"bor\"}[5m])",
+          "legendFormat": "Underpriced",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Block Execution Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "chain_execution{job=\"bor\"} / 1e9",
+          "legendFormat": "Execution Time",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Parallel EVM",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "chain_pevm_txs_parallel{job=\"bor\"}",
+          "legendFormat": "Parallel Txs",
+          "refId": "A"
+        },
+        {
+          "expr": "chain_pevm_txs_fallback{job=\"bor\"}",
+          "legendFormat": "Fallback Txs",
+          "refId": "B"
+        },
+        {
+          "expr": "chain_pevm_procs{job=\"bor\"}",
+          "legendFormat": "PEVM Procs",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "RPC Requests",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(rpc_requests{job=\"bor\"}[5m])",
+          "legendFormat": "Requests/s",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(rpc_failure{job=\"bor\"}[5m])",
+          "legendFormat": "Failures/s",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "RPC Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ns" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rpc_duration{job=\"bor\", quantile=\"0.5\"}",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "rpc_duration{job=\"bor\", quantile=\"0.9\"}",
+          "legendFormat": "p90",
+          "refId": "B"
+        },
+        {
+          "expr": "rpc_duration{job=\"bor\", quantile=\"0.99\"}",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Heap Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "system_memory_allocs{job=\"bor\"}",
+          "legendFormat": "Heap Alloc",
+          "refId": "A"
+        },
+        {
+          "expr": "system_memory_frees{job=\"bor\"}",
+          "legendFormat": "Heap Sys",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "GC Pauses",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ns" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "system_memory_pauses{job=\"bor\"}",
+          "legendFormat": "GC Pause",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Goroutines",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "system_cpu_goroutines{job=\"bor\"}",
+          "legendFormat": "Goroutines",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

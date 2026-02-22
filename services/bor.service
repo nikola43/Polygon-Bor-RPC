@@ -9,7 +9,7 @@ Requires=heimdalld.service
 Type=simple
 User=bor
 Group=bor
-Environment=GOMEMLIMIT=600GiB
+Environment=GOMEMLIMIT=140GiB
 Environment=GOGC=25
 ExecStart=/usr/bin/bor server --config /var/lib/bor/config.toml
 Restart=on-failure
